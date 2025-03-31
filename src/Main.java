@@ -1,10 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.lang.Math.*;
 
 
 public class Main {
@@ -25,7 +22,12 @@ public class Main {
 }
 
 class rayTracingPanel extends JPanel implements Runnable {
+    public rayTracingPanel(){
+        addMouseListener(mouseHandler);
+    }
+
     Thread thread;
+    MouseHandler mouseHandler = new MouseHandler();
     Circle circle = new Circle(200,200,20);
     Circle oCircle = new Circle(700 ,300,40);
     Circle oCircle2 = new Circle(500,100,20);
@@ -45,12 +47,10 @@ class rayTracingPanel extends JPanel implements Runnable {
         int drawCount = 0;
 
         while(thread != null){
-            //Game Loop - Update, Render, Sleep
             currentTime = System.nanoTime();
 
             delta += (currentTime - lastTime) / drawInterval;
             timer += (int) (currentTime - lastTime);
-
             lastTime = currentTime;
 
             if(delta >= 1){
@@ -77,13 +77,17 @@ class rayTracingPanel extends JPanel implements Runnable {
         circles[1] = oCircle2;
 
         Point mousePos = getMousePosition();
-        if (mousePos != null) {
+        if (mouseHandler.mousePressed && mousePos != null) {
             circle.x = mousePos.x;
             circle.y = mousePos.y;
         }
         oCircle.moveCircle(true,true,3);
         oCircle2.moveCircle(true, false, 7);
-        circle.generateRays(500);
+        oCircle.circleCollision(circles);
+        oCircle2.circleCollision(circles);
+        oCircle.circleCollision(circle);
+        oCircle2.circleCollision(circle);
+        circle.generateRays(100);
         circle.fillRays(circles);
 
 
@@ -99,6 +103,42 @@ class Ray{
         this.x = x;
         this.y = y;
         this.angle = angle;
+    }
+}
+
+class MouseHandler implements MouseListener{
+    boolean mousePressed;
+
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            mousePressed = true;
+            System.out.println("Left mouse pressed detected! mousePressed = " + mousePressed);
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            mousePressed = false;
+            System.out.println("Left mouse released detected! mousePressed = " + mousePressed);
+        }
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
     }
 }
 
@@ -131,9 +171,27 @@ class Circle {
         }
     }
 
+    void circleCollision(Circle[] objects){
+        for(Circle circle : objects){
+            if(Math.pow(this.radius - circle.radius,2) <= Math.pow(this.x - circle.x,2) + Math.pow(this.y - circle.y,2)
+                    && Math.pow(this.x - circle.x,2) + Math.pow(this.y - circle.y,2) <= Math.pow(this.radius + circle.radius,2)
+                    && this != circle){
+                directionX = -directionX;
+                directionY = -directionY;
+            }
+        }
+    }
+
+    void circleCollision(Circle circle){
+        if(Math.pow(this.radius - circle.radius,2) <= Math.pow(this.x - circle.x,2) + Math.pow(this.y - circle.y,2)
+                && Math.pow(this.x - circle.x,2) + Math.pow(this.y - circle.y,2) <= Math.pow(this.radius + circle.radius,2)
+                && this != circle){
+            directionX = -directionX;
+            directionY = -directionY;
+        }
+    }
+
     void moveCircle(boolean moveX, boolean moveY, int speed){
-
-
         if(moveX) {
             if (this.x >= g2.getClipBounds().getWidth() || this.x <= 0) {
                 directionX = -directionX;
@@ -142,7 +200,7 @@ class Circle {
 
         }
         if(moveY){
-            if (this.y >= g2.getClipBounds().getHeight() || this.y <= 0) {
+            if (this.y >= g2.getClipBounds().getHeight() || this.y <= 0 ) {
                 directionY = -directionY;
             }
             this.y += speed * directionY;
